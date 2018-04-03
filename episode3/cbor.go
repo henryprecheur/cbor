@@ -35,7 +35,17 @@ func (enc *Encoder) Encode(v interface{}) error {
 		}
 		var _, err = enc.w.Write([]byte{hdr})
 		return err
+	case uint64:
+		var i = v.(uint64)
+		if 0 <= i && i <= 23 {
+			var h = header(majorPositiveInteger, byte(i))
+			var _, err = enc.w.Write([]byte{h})
+			return err
+		} else {
+			return ErrNotImplemented
+		}
 	}
+
 	return ErrNotImplemented
 }
 
@@ -44,6 +54,12 @@ const (
 	majorPositiveInteger = 0
 	majorSimpleValue     = 7
 
+	// extended integers
+	positiveInt8  = 24
+	positiveInt16 = 25
+	positiveInt32 = 26
+	positiveInt64 = 27
+
 	// simple values == major type 7
 	simpleValueFalse = 20
 	simpleValueTrue  = 21
@@ -51,5 +67,5 @@ const (
 )
 
 func header(major, additional byte) byte {
-	return byte(major<<5) | additional
+	return (major << 5) | additional
 }
