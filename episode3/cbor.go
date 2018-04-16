@@ -58,24 +58,23 @@ func (e *Encoder) writeInteger(i uint64) error {
 	}
 }
 
-// Can only encode nil, false, and true
-func (enc *Encoder) Encode(v interface{}) error {
+// Can encode nil, false, true, and integers
+func (e *Encoder) Encode(v interface{}) error {
 	switch v.(type) {
 	case nil:
-		var hdr = header(majorSimpleValue, simpleValueNil)
-		var _, err = enc.w.Write([]byte{hdr})
-		return err
+		return e.writeHeader(majorSimpleValue, simpleValueNil)
 	case bool:
-		var hdr byte
+		var minor byte
 		if v.(bool) {
-			hdr = header(majorSimpleValue, simpleValueTrue)
+			minor = simpleValueTrue
 		} else {
-			hdr = header(majorSimpleValue, simpleValueFalse)
+			minor = simpleValueFalse
 		}
-		_, err := enc.w.Write([]byte{hdr})
-		return err
-	case uint64:
-		return enc.writeInteger(v.(uint64))
+		return e.writeHeader(majorSimpleValue, minor)
+	case uint, uint8, uint16, uint32, uint64, int, int8, int16, int32, int64:
+		if v.(uint64) >= 0 {
+			return e.writeInteger(v.(uint64))
+		}
 	}
 
 	return ErrNotImplemented
