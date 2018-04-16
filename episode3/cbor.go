@@ -5,6 +5,7 @@
 package cbor
 
 import (
+	"encoding/binary"
 	"errors"
 	"io"
 )
@@ -18,6 +19,44 @@ func NewEncoder(w io.Writer) *Encoder {
 }
 
 var ErrNotImplemented = errors.New("Not Implemented")
+
+func (e *Encoder) writeHeader(major, minor byte) error {
+	h := byte((major << 5) | minor)
+	_, err := e.w.Write([]byte{h})
+	return err
+}
+
+// writeHeaderInteger writes out a header created from major and minor magic
+// numbers and write the value v as a big endian value
+func (e *Encoder) writeHeaderInteger(major, minor byte, v interface{}) error {
+	if err := e.writeHeader(major, minor); err != nil {
+		return err
+	}
+	return binary.Write(e.w, binary.BigEndian, v)
+}
+
+func (e *Encoder) writeInteger(i uint64) error {
+	switch {
+	case i <= 23:
+		return e.writeHeader(majorPositiveInteger, byte(i))
+	case i <= 0xff:
+		return e.writeHeaderInteger(
+			majorPositiveInteger, minorPositiveInt8, uint8(i),
+		)
+	case i <= 0xffff:
+		return e.writeHeaderInteger(
+			majorPositiveInteger, minorPositiveInt16, uint16(i),
+		)
+	case i <= 0xffffffff:
+		return e.writeHeaderInteger(
+			majorPositiveInteger, minorPositiveInt32, uint32(i),
+		)
+	default:
+		return e.writeHeaderInteger(
+			majorPositiveInteger, minorPositiveInt64, uint64(i),
+		)
+	}
+}
 
 // Can only encode nil, false, and true
 func (enc *Encoder) Encode(v interface{}) error {
@@ -33,17 +72,10 @@ func (enc *Encoder) Encode(v interface{}) error {
 		} else {
 			hdr = header(majorSimpleValue, simpleValueFalse)
 		}
-		var _, err = enc.w.Write([]byte{hdr})
+		_, err := enc.w.Write([]byte{hdr})
 		return err
 	case uint64:
-		var i = v.(uint64)
-		if 0 <= i && i <= 23 {
-			var h = header(majorPositiveInteger, byte(i))
-			var _, err = enc.w.Write([]byte{h})
-			return err
-		} else {
-			return ErrNotImplemented
-		}
+		return enc.writeInteger(v.(uint64))
 	}
 
 	return ErrNotImplemented
@@ -55,10 +87,10 @@ const (
 	majorSimpleValue     = 7
 
 	// extended integers
-	positiveInt8  = 24
-	positiveInt16 = 25
-	positiveInt32 = 26
-	positiveInt64 = 27
+	minorPositiveInt8  = 24
+	minorPositiveInt16 = 25
+	minorPositiveInt32 = 26
+	minorPositiveInt64 = 27
 
 	// simple values == major type 7
 	simpleValueFalse = 20

@@ -46,25 +46,27 @@ func TestIntBig(t *testing.T) {
 		Value    uint64
 		Expected []byte
 	}{
-		// smallest 8 bit value
+		// Examples from CBOR spec
+		{Value: 0, Expected: []byte{0x00}},
+		{Value: 1, Expected: []byte{0x01}},
+		{Value: 10, Expected: []byte{0x0a}},
+		{Value: 23, Expected: []byte{0x17}},
+		{Value: 24, Expected: []byte{0x18, 0x18}},
+		{Value: 25, Expected: []byte{0x18, 0x19}},
+		{Value: 100, Expected: []byte{0x18, 0x64}},
+		{Value: 1000, Expected: []byte{0x19, 0x03, 0xe8}},
+		{Value: 1000000, Expected: []byte{0x1a, 0x00, 0x0f, 0x42, 0x40}},
 		{
-			Value:    24,
-			Expected: []byte{header(majorPositiveInteger, positiveInt8), 24},
+			Value: 1000000000000,
+			Expected: []byte{
+				0x1b, 0x00, 0x00, 0x00, 0xe8, 0xd4, 0xa5, 0x10, 0x00,
+			},
 		},
-		// biggest 8 bit value
 		{
-			Value:    0xff,
-			Expected: []byte{header(majorPositiveInteger, positiveInt8), 0xff},
-		},
-		// smallest 16 bits value
-		{
-			Value:    0xff + 1,
-			Expected: []byte{header(majorPositiveInteger, positiveInt16), 1, 0},
-		},
-		// biggest 16 bits value
-		{
-			Value:    0xffff,
-			Expected: []byte{header(majorPositiveInteger, positiveInt16), 0xff, 0xff},
+			Value: 18446744073709551615,
+			Expected: []byte{
+				0x1b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			},
 		},
 	}
 
