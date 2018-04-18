@@ -96,7 +96,3 @@ const (
 	simpleValueTrue  = 21
 	simpleValueNil   = 22
 )
-
-func header(major, additional byte) byte {
-	return (major << 5) | additional
-}

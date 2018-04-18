@@ -36,7 +36,7 @@ func TestBool(t *testing.T) {
 
 func TestIntSmall(t *testing.T) {
 	for i := 0; i <= 23; i++ {
-		var expected = []byte{header(majorPositiveInteger, byte(i))}
+		var expected = []byte{byte(i)}
 		testEncoder(t, uint64(i), nil, expected)
 	}
 }
