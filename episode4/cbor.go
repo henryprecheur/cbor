@@ -69,7 +69,7 @@ func (e *Encoder) Encode(v interface{}) error {
 		if x.IsNil() {
 			return e.writeHeader(majorSimpleValue, simpleValueNil)
 		} else {
-			// return e.Encode(reflect.Indirect(x).Interface())
+			return e.Encode(reflect.Indirect(x).Interface())
 		}
 	case reflect.Bool:
 		var minor byte
@@ -79,12 +79,7 @@ func (e *Encoder) Encode(v interface{}) error {
 			minor = simpleValueFalse
 		}
 		return e.writeHeader(majorSimpleValue, minor)
-	case
-		reflect.Uint,
-		reflect.Uint8,
-		reflect.Uint16,
-		reflect.Uint32,
-		reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return e.writeInteger(x.Uint())
 	}
 	return ErrNotImplemented

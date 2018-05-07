@@ -38,9 +38,10 @@ func TestNilTyped(t *testing.T) {
 }
 
 func TestPointer(t *testing.T) {
-	i := 10
-	pi := &i
+	i := uint(10)
+	pi := &i // pi is a *uint
 
+	// should output the number 10
 	testEncoder(t, pi, nil, []byte{0x0a})
 }
 
