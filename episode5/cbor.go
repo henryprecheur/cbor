@@ -90,16 +90,10 @@ func (e *Encoder) Encode(v interface{}) error {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return e.writeInteger(majorPositiveInteger, x.Uint())
 	case reflect.Array:
-		// turn x into a slice
-		if x.CanAddr() {
-			x = x.Slice(0, x.Len())
-		} else {
-			// we have an unaddressable array, we copy it since we can't reference it
-			var xElemType = reflect.SliceOf(x.Type().Elem())
-			var slice = reflect.MakeSlice(xElemType, x.Len(), x.Len())
-			reflect.Copy(slice, x)
-			x = slice
-		}
+		// Create slice from array
+		var n = reflect.New(x.Type())
+		n.Elem().Set(x)
+		x = reflect.Indirect(n).Slice(0, x.Len())
 		fallthrough
 	case reflect.Slice:
 		if x.Type().Elem().Kind() == reflect.Uint8 {
