@@ -141,7 +141,7 @@ func TestUnicodeString(t *testing.T) {
 	}
 }
 
-func TestNegtiveIntegers(t *testing.T) {
+func TestNegativeIntegers(t *testing.T) {
 	var cases = []struct {
 		Value    int64
 		Expected []byte
