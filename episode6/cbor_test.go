@@ -3,6 +3,7 @@ package cbor
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"testing"
 )
 
@@ -135,6 +136,30 @@ func TestUnicodeString(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s", c.Value), func(t *testing.T) {
+			testEncoder(t, c.Value, nil, c.Expected)
+		})
+	}
+}
+
+func TestNegtiveIntegers(t *testing.T) {
+	var cases = []struct {
+		Value    int64
+		Expected []byte
+	}{
+		{Value: -1, Expected: []byte{0x20}},
+		{Value: -10, Expected: []byte{0x29}},
+		{Value: -100, Expected: []byte{0x38, 0x63}},
+		{Value: -1000, Expected: []byte{0x39, 0x03, 0xe7}},
+		{
+			Value: math.MinInt64,
+			Expected: []byte{
+				0x3b, 0x7f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%d", c.Value), func(t *testing.T) {
 			testEncoder(t, c.Value, nil, c.Expected)
 		})
 	}

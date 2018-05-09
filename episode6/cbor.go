@@ -107,7 +107,7 @@ func (e *Encoder) encode(x reflect.Value) error {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		var i = x.Int()
 		if i < 0 {
-			return e.writeInteger(majorNegativeInteger, uint64(-i))
+			return e.writeInteger(majorNegativeInteger, uint64(-(i + 1)))
 		} else {
 			return e.writeInteger(majorPositiveInteger, uint64(i))
 		}
