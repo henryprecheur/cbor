@@ -79,6 +79,18 @@ func (e *Encoder) writeArray(v reflect.Value) error {
 	return nil
 }
 
+func (e *Encoder) writeMap(v reflect.Value) error {
+	if err := e.writeInteger(majorMap, uint64(v.Len())); err != nil {
+		return err
+	}
+
+	for _, key := range v.MapKeys() {
+		e.encode(key)
+		e.encode(v.MapIndex(key))
+	}
+	return nil
+}
+
 func (e *Encoder) Encode(v interface{}) error {
 	return e.encode(reflect.ValueOf(v))
 }
@@ -126,6 +138,8 @@ func (e *Encoder) encode(x reflect.Value) error {
 		return e.writeArray(x)
 	case reflect.String:
 		return e.writeUnicodeString(x.String())
+	case reflect.Map:
+		return e.writeMap(x)
 	}
 	return ErrNotImplemented
 }

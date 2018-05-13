@@ -197,22 +197,41 @@ func TestArray(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	var (
-		emptyMap    = map[interface{}]interface{}{}
-		integersMap = map[int]int{1: 2, 3: 4}
-		arrayMap    = map[string]interface{}{"a": 1, "b": []int{2, 3}}
-		mapArray    = []interface{}{"a", map[string]string{"b": "c"}}
-	)
-	_ = integersMap
-	_ = arrayMap
-	_ = mapArray
+	// {}
+	t.Run("{}", func(t *testing.T) {
+		testEncoder(t, map[struct{}]struct{}{}, nil, []byte{0xa0})
+	})
+	// ["a", {"b": "c"}]
+	t.Run("{\"a\", {\"b\": \"c\"}", func(t *testing.T) {
+		testEncoder(
+			t,
+			[]interface{}{"a", map[string]string{"b": "c"}},
+			nil,
+			[]byte{0x82, 0x61, 0x61, 0xa1, 0x61, 0x62, 0x61, 0x63},
+		)
+	})
 
 	var cases = []struct {
-		Value     interface{}
-		Length    int
-		KeyValues [][]byte
+		Value    interface{}
+		Length   int
+		Expected [][]byte
 	}{
-		{Value: emptyMap, Length: 0},
+		{
+			Value:  map[int]int{1: 2, 3: 4},
+			Length: 2,
+			Expected: [][]byte{
+				[]byte{0x01, 0x02}, // {1: 2}
+				[]byte{0x03, 0x04}, // {3: 4}
+			},
+		},
+		{
+			Value:  map[string]interface{}{"a": 1, "b": []int{2, 3}},
+			Length: 2,
+			Expected: [][]byte{
+				[]byte{0x61, 0x61, 0x01},             // {"a": 1}
+				[]byte{0x61, 0x62, 0x82, 0x02, 0x03}, // {"b": [2, 3]}
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -231,10 +250,9 @@ func TestMap(t *testing.T) {
 			var (
 				header     = buffer.Bytes()[0]
 				result     = buffer.Bytes()[1:]
-				lengthMask = ^(^uint8(0) >> 3) // bit mask to extract the length of the map
-				length     = header | lengthMask
+				lengthMask = ^uint8(0) >> 3 // bit mask to extract the length of the map
+				length     = header & lengthMask
 			)
-			_ = result
 			// First we check the maps' length
 			if header>>5 != majorMap {
 				t.Fatalf("invalid major type: %#v", header)
@@ -246,7 +264,7 @@ func TestMap(t *testing.T) {
 			}
 
 			// Iterate over the key/values we expect in the map and remove them from the result
-			for _, kv := range c.KeyValues {
+			for _, kv := range c.Expected {
 				if !bytes.Contains(result, kv) {
 					t.Fatalf("key/value %#v not found in result", kv)
 				}
