@@ -250,7 +250,6 @@ func TestMap(t *testing.T) {
 				t.Fatalf("invalid major type: %#v", header)
 			}
 
-			// FIXME we assume the header + map size will only be encoded using 1 byte
 			if int(length) != len(c.Value) {
 				t.Fatalf("invalid length: %#v != %#v", length, len(c.Value))
 			}
