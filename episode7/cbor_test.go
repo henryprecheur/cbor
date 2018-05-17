@@ -212,21 +212,18 @@ func TestMap(t *testing.T) {
 	})
 
 	var cases = []struct {
-		Value    interface{}
-		Length   int
+		Value    map[interface{}]interface{}
 		Expected [][]byte
 	}{
 		{
-			Value:  map[int]int{1: 2, 3: 4},
-			Length: 2,
+			Value: map[interface{}]interface{}{1: 2, 3: 4},
 			Expected: [][]byte{
 				[]byte{0x01, 0x02}, // {1: 2}
 				[]byte{0x03, 0x04}, // {3: 4}
 			},
 		},
 		{
-			Value:  map[string]interface{}{"a": 1, "b": []int{2, 3}},
-			Length: 2,
+			Value: map[interface{}]interface{}{"a": 1, "b": []int{2, 3}},
 			Expected: [][]byte{
 				[]byte{0x61, 0x61, 0x01},             // {"a": 1}
 				[]byte{0x61, 0x62, 0x82, 0x02, 0x03}, // {"b": [2, 3]}
@@ -259,8 +256,8 @@ func TestMap(t *testing.T) {
 			}
 
 			// FIXME we assume the header + map size will only be encoded using 1 byte
-			if int(length) != c.Length {
-				t.Fatalf("invalid length: %#v != %#v", length, c.Length)
+			if int(length) != len(c.Value) {
+				t.Fatalf("invalid length: %#v != %#v", length, len(c.Value))
 			}
 
 			// Iterate over the key/values we expect in the map and remove them from the result
