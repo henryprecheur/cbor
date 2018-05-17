@@ -233,21 +233,16 @@ func TestMap(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%v", c.Value), func(t *testing.T) {
-			var (
-				// buffer is where we write the CBOR encoded values
-				buffer = bytes.Buffer{}
-				// create a new encoder writing to buffer, and encode v with it
-				e = NewEncoder(&buffer).Encode(c.Value)
-			)
+			var buffer bytes.Buffer
 
-			if e != nil {
-				t.Fatalf("err: %#v != %#v with %#v", e, nil, c.Value)
+			if err := NewEncoder(&buffer).Encode(c.Value); err != nil {
+				t.Fatalf("err: %#v != %#v with %#v", err, nil, c.Value)
 			}
 
 			var (
 				header     = buffer.Bytes()[0]
 				result     = buffer.Bytes()[1:]
-				lengthMask = ^uint8(0) >> 3 // bit mask to extract the length of the map
+				lengthMask = ^uint8(0) >> 3 // bit mask to extract the length
 				length     = header & lengthMask
 			)
 			// First we check the maps' length
