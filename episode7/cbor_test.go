@@ -254,7 +254,6 @@ func TestMap(t *testing.T) {
 				t.Fatalf("invalid length: %#v != %#v", length, len(c.Value))
 			}
 
-			// Iterate over the key/values we expect in the map and remove them from the result
 			for _, kv := range c.Expected {
 				if !bytes.Contains(result, kv) {
 					t.Fatalf("key/value %#v not found in result", kv)
@@ -263,7 +262,7 @@ func TestMap(t *testing.T) {
 				result = bytes.Replace(result, kv, []byte{}, 1)
 			}
 
-			// ensure we got everything is the map
+			// ensure there's left-over data
 			if len(result) > 0 {
 				t.Fatalf("leftover in result: %#v", result)
 			}
