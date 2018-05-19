@@ -269,3 +269,41 @@ func TestMap(t *testing.T) {
 		})
 	}
 }
+
+func TestStruct(t *testing.T) {
+	var cases = []struct {
+		Value    interface{}
+		Expected []byte
+	}{
+		{Value: struct{}{}, Expected: []byte{0xa0}},
+		{
+			Value: struct {
+				a int
+				b []int
+			}{a: 1, b: []int{2, 3}},
+			Expected: []byte{
+				0xa2, 0x61, 0x61, 0x01, 0x61, 0x62, 0x82, 0x02, 0x03,
+			},
+		},
+		{
+			Value: struct {
+				a string
+				b string
+				c string
+				d string
+				e string
+			}{"A", "B", "C", "D", "E"},
+			Expected: []byte{
+				0xa5, 0x61, 0x61, 0x61, 0x41, 0x61, 0x62, 0x61, 0x42, 0x61,
+				0x63, 0x61, 0x43, 0x61, 0x64, 0x61, 0x44, 0x61, 0x65, 0x61,
+				0x45,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%v"), func(t *testing.T) {
+			testEncoder(t, c.Value, nil, c.Expected)
+		})
+	}
+}
