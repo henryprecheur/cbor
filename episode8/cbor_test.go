@@ -9,14 +9,14 @@ import (
 
 // testEncoder test the CBOR encoder with the value v, and verify that err, and
 // expected match what's returned and written by the encoder.
-func testEncoder(t *testing.T, v interface{}, err error, expected []byte) {
+func testEncoder(t *testing.T, v interface{}, expected []byte) {
 	// buffer is where we write the CBOR encoded values
 	var buffer = bytes.Buffer{}
 	// create a new encoder writing to buffer, and encode v with it
 	var e = NewEncoder(&buffer).Encode(v)
 
-	if e != err {
-		t.Fatalf("err: %#v != %#v with %#v", e, err, v)
+	if e != nil {
+		t.Fatalf("err: %#v != nil with %#v", e, v)
 	}
 
 	if !bytes.Equal(buffer.Bytes(), expected) {
@@ -27,15 +27,15 @@ func testEncoder(t *testing.T, v interface{}, err error, expected []byte) {
 }
 
 func TestNil(t *testing.T) {
-	testEncoder(t, nil, nil, []byte{0xf6})
+	testEncoder(t, nil, []byte{0xf6})
 }
 
 func TestNilTyped(t *testing.T) {
 	var i *int = nil
-	testEncoder(t, i, nil, []byte{0xf6})
+	testEncoder(t, i, []byte{0xf6})
 
 	var v interface{} = nil
-	testEncoder(t, v, nil, []byte{0xf6})
+	testEncoder(t, v, []byte{0xf6})
 }
 
 func TestPointer(t *testing.T) {
@@ -43,18 +43,18 @@ func TestPointer(t *testing.T) {
 	pi := &i // pi is a *uint
 
 	// should output the number 10
-	testEncoder(t, pi, nil, []byte{0x0a})
+	testEncoder(t, pi, []byte{0x0a})
 }
 
 func TestBool(t *testing.T) {
-	testEncoder(t, false, nil, []byte{0xf4})
-	testEncoder(t, true, nil, []byte{0xf5})
+	testEncoder(t, false, []byte{0xf4})
+	testEncoder(t, true, []byte{0xf5})
 }
 
 func TestIntSmall(t *testing.T) {
 	for i := 0; i <= 23; i++ {
 		var expected = []byte{byte(i)}
-		testEncoder(t, uint64(i), nil, expected)
+		testEncoder(t, uint64(i), expected)
 	}
 }
 
@@ -89,7 +89,7 @@ func TestIntBig(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%d", c.Value), func(t *testing.T) {
-			testEncoder(t, uint64(c.Value), nil, c.Expected)
+			testEncoder(t, uint64(c.Value), c.Expected)
 		})
 	}
 }
@@ -109,14 +109,14 @@ func TestByteString(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%v", c.Value), func(t *testing.T) {
-			testEncoder(t, c.Value, nil, c.Expected)
+			testEncoder(t, c.Value, c.Expected)
 		})
 	}
 
 	// for arrays
 	t.Run("array", func(t *testing.T) {
 		a := [...]byte{1, 2}
-		testEncoder(t, &a, nil, []byte{0x42, 1, 2})
+		testEncoder(t, &a, []byte{0x42, 1, 2})
 	})
 }
 
@@ -136,7 +136,7 @@ func TestUnicodeString(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s", c.Value), func(t *testing.T) {
-			testEncoder(t, c.Value, nil, c.Expected)
+			testEncoder(t, c.Value, c.Expected)
 		})
 	}
 }
@@ -160,7 +160,7 @@ func TestNegativeIntegers(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%d", c.Value), func(t *testing.T) {
-			testEncoder(t, c.Value, nil, c.Expected)
+			testEncoder(t, c.Value, c.Expected)
 		})
 	}
 }
@@ -191,7 +191,7 @@ func TestArray(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%v", c.Value), func(t *testing.T) {
-			testEncoder(t, c.Value, nil, c.Expected)
+			testEncoder(t, c.Value, c.Expected)
 		})
 	}
 }
@@ -199,14 +199,13 @@ func TestArray(t *testing.T) {
 func TestMap(t *testing.T) {
 	// {}
 	t.Run("{}", func(t *testing.T) {
-		testEncoder(t, map[struct{}]struct{}{}, nil, []byte{0xa0})
+		testEncoder(t, map[struct{}]struct{}{}, []byte{0xa0})
 	})
 	// ["a", {"b": "c"}]
 	t.Run("{\"a\", {\"b\": \"c\"}", func(t *testing.T) {
 		testEncoder(
 			t,
 			[]interface{}{"a", map[string]string{"b": "c"}},
-			nil,
 			[]byte{0x82, 0x61, 0x61, 0xa1, 0x61, 0x62, 0x61, 0x63},
 		)
 	})
@@ -303,7 +302,7 @@ func TestStruct(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%v", c.Value), func(t *testing.T) {
-			testEncoder(t, c.Value, nil, c.Expected)
+			testEncoder(t, c.Value, c.Expected)
 		})
 	}
 }
