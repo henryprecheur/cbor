@@ -91,6 +91,29 @@ func (e *Encoder) writeMap(v reflect.Value) error {
 	return nil
 }
 
+func (e *Encoder) writeStruct(v reflect.Value) error {
+	if err := e.writeInteger(majorMap, uint64(v.NumField())); err != nil {
+		return err
+	}
+
+	// Get the type of the struct to iterate over its fields
+	var t = v.Type()
+	// Iterate over each field and write its key & value
+	for i := 0; i < v.NumField(); i++ {
+		// write the name of the field as a string
+		if err := e.writeUnicodeString(t.Field(i).Name); err != nil {
+			return err
+		}
+
+		// write the field's value
+		if err := e.encode(v.Field(i)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (e *Encoder) Encode(v interface{}) error {
 	return e.encode(reflect.ValueOf(v))
 }
@@ -140,6 +163,8 @@ func (e *Encoder) encode(x reflect.Value) error {
 		return e.writeUnicodeString(x.String())
 	case reflect.Map:
 		return e.writeMap(x)
+	case reflect.Struct:
+		return e.writeStruct(x)
 	}
 	return ErrNotImplemented
 }

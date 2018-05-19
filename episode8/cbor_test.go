@@ -302,7 +302,7 @@ func TestStruct(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		t.Run(fmt.Sprintf("%v"), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%v", c.Value), func(t *testing.T) {
 			testEncoder(t, c.Value, nil, c.Expected)
 		})
 	}
