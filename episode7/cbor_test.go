@@ -229,6 +229,18 @@ func TestMap(t *testing.T) {
 				[]byte{0x61, 0x62, 0x82, 0x02, 0x03}, // {"b": [2, 3]}
 			},
 		},
+		{
+			Value: map[interface{}]interface{}{
+				"a": "A", "b": "B", "c": "C", "d": "D", "e": "E",
+			},
+			Expected: [][]byte{
+				[]byte{0x61, 0x61, 0x61, 0x41}, // {"a": "A"}
+				[]byte{0x61, 0x62, 0x61, 0x42}, // {"b": "B"}
+				[]byte{0x61, 0x63, 0x61, 0x43}, // {"c": "C"}
+				[]byte{0x61, 0x64, 0x61, 0x44}, // {"d": "D"}
+				[]byte{0x61, 0x65, 0x61, 0x45}, // {"e": "E"}
+			},
+		},
 	}
 
 	for _, c := range cases {
