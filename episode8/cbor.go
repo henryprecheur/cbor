@@ -96,16 +96,11 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 		return err
 	}
 
-	// Get the type of the struct to iterate over its fields
-	var t = v.Type()
 	// Iterate over each field and write its key & value
 	for i := 0; i < v.NumField(); i++ {
-		// write the name of the field as a string
-		if err := e.writeUnicodeString(t.Field(i).Name); err != nil {
+		if err := e.writeUnicodeString(v.Type().Field(i).Name); err != nil {
 			return err
 		}
-
-		// write the field's value
 		if err := e.encode(v.Field(i)); err != nil {
 			return err
 		}
