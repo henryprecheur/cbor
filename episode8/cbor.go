@@ -97,18 +97,15 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 		Value reflect.Value
 	}
 	var fields []fieldKeyValue
-
 	// Iterate over each field and add its key & value to fields
 	for i := 0; i < v.NumField(); i++ {
 		var fType = v.Type().Field(i)
 		var fValue = v.Field(i)
-
 		var tag = fType.Tag.Get("cbor")
 		if tag == "-" {
 			continue
 		}
 		name, opts := parseTag(tag)
-
 		// with the option omitempty skip the value if it's empty
 		if opts.Contains("omitempty") && isEmptyValue(fValue) {
 			continue
@@ -121,11 +118,9 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 		}
 		fields = append(fields, fieldKeyValue{Name: name, Value: fValue})
 	}
-
 	if err := e.writeInteger(majorMap, uint64(len(fields))); err != nil {
 		return err
 	}
-
 	for _, kv := range fields {
 		if err := e.writeUnicodeString(kv.Name); err != nil {
 			return err
@@ -134,7 +129,6 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
