@@ -92,16 +92,45 @@ func (e *Encoder) writeMap(v reflect.Value) error {
 }
 
 func (e *Encoder) writeStruct(v reflect.Value) error {
-	if err := e.writeInteger(majorMap, uint64(v.NumField())); err != nil {
-		return err
+	type fieldKeyValue struct {
+		Name  string
+		Value reflect.Value
 	}
+	var fields []fieldKeyValue
 
 	// Iterate over each field and write its key & value
 	for i := 0; i < v.NumField(); i++ {
-		if err := e.writeUnicodeString(v.Type().Field(i).Name); err != nil {
+		var fType = v.Type().Field(i)
+		var fValue = v.Field(i)
+
+		var tag = fType.Tag.Get("cbor")
+		if tag == "-" || (fType.PkgPath != "" && fType.Anonymous) {
+			continue
+		}
+		name, opts := parseTag(tag)
+
+		// with the option omitempty skip the value if it's empty
+		if opts.Contains("omitempty") && isEmptyValue(fValue) {
+			continue
+		}
+		if !isValidTag(name) {
+			name = ""
+		}
+		if name == "" {
+			name = fType.Name
+		}
+		fields = append(fields, fieldKeyValue{Name: name, Value: fValue})
+	}
+
+	if err := e.writeInteger(majorMap, uint64(len(fields))); err != nil {
+		return err
+	}
+
+	for _, kv := range fields {
+		if err := e.writeUnicodeString(kv.Name); err != nil {
 			return err
 		}
-		if err := e.encode(v.Field(i)); err != nil {
+		if err := e.encode(kv.Value); err != nil {
 			return err
 		}
 	}
