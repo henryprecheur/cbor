@@ -98,7 +98,7 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 	}
 	var fields []fieldKeyValue
 
-	// Iterate over each field and write its key & value
+	// Iterate over each field and add its key & value to fields
 	for i := 0; i < v.NumField(); i++ {
 		var fType = v.Type().Field(i)
 		var fValue = v.Field(i)
