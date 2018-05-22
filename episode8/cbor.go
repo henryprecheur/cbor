@@ -104,7 +104,7 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 		var fValue = v.Field(i)
 
 		var tag = fType.Tag.Get("cbor")
-		if tag == "-" || (fType.PkgPath != "" && fType.Anonymous) {
+		if tag == "-" {
 			continue
 		}
 		name, opts := parseTag(tag)
