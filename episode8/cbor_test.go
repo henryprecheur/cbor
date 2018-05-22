@@ -318,3 +318,18 @@ func TestStruct(t *testing.T) {
 		})
 	}
 }
+
+func TestStructTag(t *testing.T) {
+	testEncoder(t,
+		struct {
+			AField int   `cbor:"a"`
+			BField []int `cbor:"b"`
+			Omit1  int   `cbor:"c,omitempty"`
+			Omit2  int   `cbor:",omitempty"`
+			Ignore int   `cbor:"-"`
+		}{AField: 1, BField: []int{2, 3}, Ignore: 12345},
+		[]byte{
+			0xa2, 0x61, 0x61, 0x01, 0x61, 0x62, 0x82, 0x02, 0x03,
+		},
+	)
+}
