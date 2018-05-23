@@ -211,25 +211,25 @@ func TestMap(t *testing.T) {
 	})
 
 	var cases = []struct {
-		Value    map[interface{}]interface{}
+		Value    interface{}
 		Expected [][]byte
 	}{
 		{
-			Value: map[interface{}]interface{}{1: 2, 3: 4},
+			Value: map[int]int{1: 2, 3: 4},
 			Expected: [][]byte{
 				[]byte{0x01, 0x02}, // {1: 2}
 				[]byte{0x03, 0x04}, // {3: 4}
 			},
 		},
 		{
-			Value: map[interface{}]interface{}{"a": 1, "b": []int{2, 3}},
+			Value: map[string]interface{}{"a": 1, "b": []int{2, 3}},
 			Expected: [][]byte{
 				[]byte{0x61, 0x61, 0x01},             // {"a": 1}
 				[]byte{0x61, 0x62, 0x82, 0x02, 0x03}, // {"b": [2, 3]}
 			},
 		},
 		{
-			Value: map[interface{}]interface{}{
+			Value: map[string]string{
 				"a": "A", "b": "B", "c": "C", "d": "D", "e": "E",
 			},
 			Expected: [][]byte{
@@ -256,13 +256,12 @@ func TestMap(t *testing.T) {
 				lengthMask = ^uint8(0) >> 3 // bit mask to extract the length
 				length     = header & lengthMask
 			)
-			// First we check the maps' length
 			if header>>5 != majorMap {
 				t.Fatalf("invalid major type: %#v", header)
 			}
 
-			if int(length) != len(c.Value) {
-				t.Fatalf("invalid length: %#v != %#v", length, len(c.Value))
+			if int(length) != len(c.Expected) {
+				t.Fatalf("invalid length: %#v != %#v", length, len(c.Expected))
 			}
 
 			for _, kv := range c.Expected {
