@@ -272,7 +272,7 @@ func TestMap(t *testing.T) {
 				result = bytes.Replace(result, kv, []byte{}, 1)
 			}
 
-			// ensure there's left-over data
+			// ensure there's no left-over data
 			if len(result) > 0 {
 				t.Fatalf("leftover in result: %#v", result)
 			}
