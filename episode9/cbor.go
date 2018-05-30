@@ -137,11 +137,11 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 const (
 	float16ExpBits  = 5
 	float16MantBits = 10
-	float16ExpBias  = (1 << (float16ExpBits - 1)) - 1
+	float16ExpBias  = 15
 	float32ExpBits  = 8
 	float32MantBits = 23
-	float32ExpBias  = (1 << (float32ExpBits - 1)) - 1
 	float64ExpBits  = 11
+	float64ExpBias  = 1023
 	float64MantBits = 52
 
 	// Minimum number of trailing zeros needed in the mantissa
@@ -167,7 +167,7 @@ func (e *Encoder) writeFloat16(negative bool, exp uint16, mant uint64) error {
 
 func unpackFloat64(f float64) (exp int, mant uint64) {
 	var r = math.Float64bits(f)
-	exp = int(r>>float64MantBits&expMask) - 1023
+	exp = int(r>>float64MantBits&expMask) - float64ExpBias
 	mant = r & mantMask
 	return
 }
@@ -193,7 +193,7 @@ func (e *Encoder) writeFloat(input float64) error {
 	)
 	switch {
 	case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
-		return e.writeFloat16(math.Signbit(input), uint16(exp+15), mant)
+		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), mant)
 	case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
 			return err
@@ -205,8 +205,6 @@ func (e *Encoder) writeFloat(input float64) error {
 		}
 		return binary.Write(e.w, binary.BigEndian, input)
 	}
-
-	return nil
 }
 
 func (e *Encoder) Encode(v interface{}) error {
