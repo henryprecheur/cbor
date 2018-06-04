@@ -112,9 +112,6 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 		if opts.Contains("omitempty") && isEmptyValue(fValue) {
 			continue
 		}
-		if !isValidTag(name) {
-			name = ""
-		}
 		if name == "" {
 			name = fType.Name
 		}

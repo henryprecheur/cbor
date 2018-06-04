@@ -9,7 +9,6 @@ package cbor
 import (
 	"reflect"
 	"strings"
-	"unicode"
 )
 
 // tagOptions is the string following a comma in a struct field's "json"
@@ -47,28 +46,9 @@ func (o tagOptions) Contains(optionName string) bool {
 	return false
 }
 
-// Source for isValidTag & isEmptyValue:
+// Source for isEmptyValue:
 //
 // https://golang.org/src/encoding/json/encode.go
-func isValidTag(s string) bool {
-	if s == "" {
-		return false
-	}
-	for _, c := range s {
-		switch {
-		case strings.ContainsRune("!#$%&()*+-./:<=>?@[]^_{|}~ ", c):
-			// Backslash and quote chars are reserved, but
-			// otherwise any punctuation chars are allowed
-			// in a tag name.
-		default:
-			if !unicode.IsLetter(c) && !unicode.IsDigit(c) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func isEmptyValue(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
