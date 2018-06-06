@@ -133,20 +133,20 @@ func (e *Encoder) writeStruct(v reflect.Value) error {
 
 const (
 	float16ExpBits  = 5
-	float16MantBits = 10
+	float16FracBits = 10
 	float16ExpBias  = 15
 	float32ExpBits  = 8
-	float32MantBits = 23
+	float32FracBits = 23
 	float64ExpBits  = 11
 	float64ExpBias  = 1023
-	float64MantBits = 52
+	float64FracBits = 52
 
 	// Minimum number of trailing zeros needed in the mantissa
-	float16MinZeros = float64MantBits - float16MantBits
-	float32MinZeros = float64MantBits - float32MantBits
+	float16MinZeros = float64FracBits - float16FracBits
+	float32MinZeros = float64FracBits - float32FracBits
 
 	expMask  = (1 << float64ExpBits) - 1
-	mantMask = (1 << float64MantBits) - 1
+	mantMask = (1 << float64FracBits) - 1
 )
 
 func (e *Encoder) writeFloat16(negative bool, exp uint16, mant uint64) error {
@@ -157,14 +157,14 @@ func (e *Encoder) writeFloat16(negative bool, exp uint16, mant uint64) error {
 	if negative {
 		output = 1 << 15
 	}
-	output |= exp << float16MantBits
-	output |= uint16(mant >> (float64MantBits - float16MantBits))
+	output |= exp << float16FracBits
+	output |= uint16(mant >> (float64FracBits - float16FracBits))
 	return binary.Write(e.w, binary.BigEndian, output)
 }
 
 func unpackFloat64(f float64) (exp int, mant uint64) {
 	var r = math.Float64bits(f)
-	exp = int(r>>float64MantBits&expMask) - float64ExpBias
+	exp = int(r>>float64FracBits&expMask) - float64ExpBias
 	mant = r & mantMask
 	return
 }
@@ -178,7 +178,7 @@ func (e *Encoder) writeFloat(input float64) error {
 		return e.writeFloat16(
 			math.Signbit(input),
 			(1<<float16ExpBits)-1,
-			1<<(float64MantBits-1),
+			1<<(float64FracBits-1),
 		)
 	case math.IsInf(input, 0):
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, 0)
