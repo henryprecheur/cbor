@@ -141,15 +141,15 @@ const (
 	float64ExpBias  = 1023
 	float64FracBits = 52
 
-	// Minimum number of trailing zeros needed in the mantissa
+	// Minimum number of trailing zeros needed in the fractional
 	float16MinZeros = float64FracBits - float16FracBits
 	float32MinZeros = float64FracBits - float32FracBits
 
 	expMask  = (1 << float64ExpBits) - 1
-	mantMask = (1 << float64FracBits) - 1
+	fracMask = (1 << float64FracBits) - 1
 )
 
-func (e *Encoder) writeFloat16(negative bool, exp uint16, mant uint64) error {
+func (e *Encoder) writeFloat16(negative bool, exp uint16, frac uint64) error {
 	if err := e.writeHeader(majorSimpleValue, minorFloat16); err != nil {
 		return err
 	}
@@ -158,14 +158,14 @@ func (e *Encoder) writeFloat16(negative bool, exp uint16, mant uint64) error {
 		output = 1 << 15
 	}
 	output |= exp << float16FracBits
-	output |= uint16(mant >> (float64FracBits - float16FracBits))
+	output |= uint16(frac >> (float64FracBits - float16FracBits))
 	return binary.Write(e.w, binary.BigEndian, output)
 }
 
-func unpackFloat64(f float64) (exp int, mant uint64) {
+func unpackFloat64(f float64) (exp int, frac uint64) {
 	var r = math.Float64bits(f)
 	exp = int(r>>float64FracBits&expMask) - float64ExpBias
-	mant = r & mantMask
+	frac = r & fracMask
 	return
 }
 
@@ -183,14 +183,13 @@ func (e *Encoder) writeFloat(input float64) error {
 	case math.IsInf(input, 0):
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, 0)
 	}
-
 	var (
-		exp, mant     = unpackFloat64(input)
-		trailingZeros = bits.TrailingZeros64(mant)
+		exp, frac     = unpackFloat64(input)
+		trailingZeros = bits.TrailingZeros64(frac)
 	)
 	switch {
 	case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
-		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), mant)
+		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
 	case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
 			return err
