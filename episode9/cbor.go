@@ -174,12 +174,6 @@ func (e *Encoder) writeFloat(input float64) error {
 	switch {
 	case input == 0:
 		return e.writeFloat16(math.Signbit(input), 0, 0)
-	case math.IsNaN(input):
-		return e.writeFloat16(
-			math.Signbit(input),
-			(1<<float16ExpBits)-1,
-			1<<(float64FracBits-1),
-		)
 	case math.IsInf(input, 0):
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, 0)
 	}
@@ -188,6 +182,8 @@ func (e *Encoder) writeFloat(input float64) error {
 		trailingZeros = bits.TrailingZeros64(frac)
 	)
 	switch {
+	case math.IsNaN(input):
+		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, frac)
 	case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
 		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
 	case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
