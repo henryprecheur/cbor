@@ -181,11 +181,22 @@ func (e *Encoder) writeFloat(input float64) error {
 		exp, frac     = unpackFloat64(input)
 		trailingZeros = bits.TrailingZeros64(frac)
 	)
+	if trailingZeros > float64FracBits {
+		trailingZeros = float64FracBits
+	}
 	switch {
 	case math.IsNaN(input):
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, frac)
 	case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
 		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
+	case -exp-float16ExpBias == float16FracBits-1:
+		// verify we can encode this subnumber without losing precision
+		if trailingZeros >= float64FracBits-float16FracBits {
+			frac |= 1 << (float64FracBits + 1)
+			frac >>= float16FracBits + 1
+			return e.writeFloat16(math.Signbit(input), 0, frac)
+		}
+		fallthrough
 	case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
 			return err
