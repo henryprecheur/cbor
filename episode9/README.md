@@ -251,22 +251,33 @@ off the bit sign. The result is then converted into an integer and we subtract
 the exponent’s bias: float64ExpBias which is 1023. That gives us the unbiased
 exponent that we can use to determine what type we can use to encode the number.
 
+FIXME rewrite
+
 We’ll use unpackFloat64 to refactor writeFloat using bit masking instead of
 converting the number to float32. The exponent range of 32 bits float is -126 to
 127 and we need at least float32MinZeros = 23 - 10 = 13 trailing zeros at the end
 of the fractional part. Here’s how we implement this:
+
+FIXME rewrite
 
     func (e *Encoder) writeFloat(input float64) error {
         var (
             exp, frac     = unpackFloat64(input)
             trailingZeros = bits.TrailingZeros64(frac)
         )
-        if (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros) {
+        if trailingZeros > float64FracBits {
+            trailingZeros = float64FracBits
+        }
+        switch {
+        case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
+            // FIXME write float16 here
+            return ErrNotImplemented
+        case float64(float32(input)) == input:
             if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
                 return err
             }
             return binary.Write(e.w, binary.BigEndian, float32(input))
-        } else {
+        default:
             if err := e.writeHeader(majorSimpleValue, minorFloat64); err != nil {
                 return err
             }
@@ -317,7 +328,7 @@ fractional for float16 and float32, if none match we fall-back to float64:
         switch {
         case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
             return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
-        case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
+        case float64(float32(input)) == input:
             if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
                 return err
             }
@@ -328,4 +339,66 @@ fractional for float16 and float32, if none match we fall-back to float64:
             }
             return binary.Write(e.w, binary.BigEndian, input)
         }
+    }
+
+Our encoder handles float16, it looks like we’re done with floats right? We
+handle all three types of floating numbers: float16, float32, and float64 it got
+to be it.
+
+Actually we aren’t clone to being done with floats: we can minimize the output
+even more by handling special numbers: Zero, Infinity, NaN —Not A Number—, and
+subnormal numbers. Right now the way the encoder works these special numbers are
+all encoded as 64 bits values, but for most of them we can be encoded as 16 bits
+numbers.
+
+In a IEEE 754 floating point numbers there are two special exponents binary
+values: all 0’s, and all 1’s. All 0’s corresponds to the Zero values, and
+subnormal numbers, while all 1’s correspond to inifity and not-a-number values.
+
+Zero is a special floating point value because it cannot be representted
+precisely with the formula, when the exponent is zero the fractional part isn’t
+prefixed by a 1, but by a 0:
+
+[subnormal numbers]: https://en.wikipedia.org/wiki/Denormal_number
+
+    1.fractional
+
+Since the fractional part of a floating number is never zero, zero can’t be
+represented. That’s why there’s a special value for zero: exponent and
+fractional both set to 0. Note that this doesn’t include the sign bit: zero can
+be either positive or negative. To support this we’ll have to copy the sign bit
+from the original number. Let’s add two test to our test suite:
+
+    ...
+    {Value: 0.0, Expected: []byte{0xf9, 0x00, 0x00}},
+    {Value: math.Copysign(0, -1), Expected: []byte{0xf9, 0x80, 0x00}},
+    ...
+
+To get a negative zero in Go we have to use the math.Copysign function since the
+compiler turns the expression -0.0 into a positive zero. To add support for zero
+values are 16 bits floats we just need to add a if statement at the beginning of
+the writeFloat method:
+
+    func (e *Encoder) writeFloat(input float64) error {
+        if input == 0 {
+            return e.writeFloat16(math.Signbit(input), 0, 0)
+        }
+        ...
+    }
+
+Note that we don’t check if the input equals -0.0 because -0.0 == 0.0.
+
+Now we move onto infinite values. They are simple to detect with the math.IsInf
+function. When we find one we write a float where the exponent is all 1’s and
+the fractional part is all 0’s:
+
+    func (e *Encoder) writeFloat(input float64) error {
+        // First check if we have a special value: 0, NaN, Inf, -Inf
+        switch {
+        case input == 0:
+            return e.writeFloat16(math.Signbit(input), 0, 0)
+        case math.IsInf(input, 0):
+            return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, 0)
+        }
+        ...
     }

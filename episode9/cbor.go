@@ -197,7 +197,7 @@ func (e *Encoder) writeFloat(input float64) error {
 			return e.writeFloat16(math.Signbit(input), 0, frac)
 		}
 		fallthrough
-	case (-126 <= exp) && (exp <= 127) && (trailingZeros >= float32MinZeros):
+	case float64(float32(input)) == input:
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
 			return err
 		}
