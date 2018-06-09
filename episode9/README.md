@@ -393,7 +393,6 @@ function. When we find one we write a float where the exponent is all 1’s and
 the fractional part is all 0’s:
 
     func (e *Encoder) writeFloat(input float64) error {
-        // First check if we have a special value: 0, NaN, Inf, -Inf
         switch {
         case input == 0:
             return e.writeFloat16(math.Signbit(input), 0, 0)
@@ -402,3 +401,36 @@ the fractional part is all 0’s:
         }
         ...
     }
+
+Not a number or NaN is similar to infinites but with a non-zero fractional part.
+The fractional part of a NaN carries some information, we’ll copy as is and just
+chop off the end because all the important information is in the firts few bits.
+
+We add the following the second switch statement:
+
+    func (e *Encoder) writeFloat(input float64) error {
+        switch {
+        case input == 0:
+            return e.writeFloat16(math.Signbit(input), 0, 0)
+        case math.IsInf(input, 0):
+            return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, 0)
+        }
+        var (
+            exp, frac     = unpackFloat64(input)
+            trailingZeros = bits.TrailingZeros64(frac)
+        )
+        ...
+        switch {
+        case math.IsNaN(input):
+                return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, frac)
+        ...
+        }
+    }
+
+The last special numbers we have to handle are called “subnumbers”. Because when
+the exponent is all zeros the formula changes, we can also represent some
+other numbers than zero with this space. When exp = 00000 with a float16 this
+means the the exponent == -14 and the leading bit isn’t a 1 but a 0! This means
+we can encode integers with really low exponent from -15 to -24 as long as the
+fractional part is a few 1’s, or with -24 a single 1. It turns out that the
+smallest possible 16 bits subnumbers is part of 
