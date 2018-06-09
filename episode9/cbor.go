@@ -135,6 +135,8 @@ const (
 	float16ExpBits  = 5
 	float16FracBits = 10
 	float16ExpBias  = 15
+	float16MaxBias  = 15
+	float16MinBias  = -14
 	float32ExpBits  = 8
 	float32FracBits = 23
 	float64ExpBits  = 11
@@ -187,16 +189,13 @@ func (e *Encoder) writeFloat(input float64) error {
 	switch {
 	case math.IsNaN(input):
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, frac)
-	case (-14 <= exp) && (exp <= 15) && (trailingZeros >= float16MinZeros):
+	case (float16MinBias <= exp) && (exp <= float16MaxBias) && (trailingZeros >= float16MinZeros):
 		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
-	case -exp-float16ExpBias == float16FracBits-1:
-		// verify we can encode this subnumber without losing precision
-		if trailingZeros >= float64FracBits-float16FracBits {
-			frac |= 1 << (float64FracBits + 1)
-			frac >>= float16FracBits + 1
-			return e.writeFloat16(math.Signbit(input), 0, frac)
-		}
-		fallthrough
+	case exp-float16MaxBias+1 <= trailingZeros-float64FracBits+float16FracBits:
+		// this number can be encoded as 16 bits subnumbers
+		frac |= 1 << (float64FracBits + 1)
+		frac >>= float16FracBits + 1
+		return e.writeFloat16(math.Signbit(input), 0, frac)
 	case float64(float32(input)) == input:
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
 			return err
