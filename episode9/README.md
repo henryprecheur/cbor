@@ -433,4 +433,9 @@ other numbers than zero with this space. When exp = 00000 with a float16 this
 means the the exponent == -14 and the leading bit isn’t a 1 but a 0! This means
 we can encode integers with really low exponent from -15 to -24 as long as the
 fractional part is a few 1’s, or with -24 a single 1. It turns out that the
-smallest possible 16 bits subnumbers is part of 
+smallest possible 16 bits subnumbers is one of the example in the CBOR spec, we
+promptly add it to the test suite:
+
+    ...
+    {Value: 5.960464477539063e-8, Expected: []byte{0xf9, 0x00, 0x01}},
+    ...
