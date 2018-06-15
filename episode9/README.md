@@ -439,3 +439,67 @@ promptly add it to the test suite:
     ...
     {Value: 5.960464477539063e-8, Expected: []byte{0xf9, 0x00, 0x01}},
     ...
+
+When the exponent is zero the formula turns into:
+
+> (−1)<sup>signbit</sup> × 2<sup>−14</sup> × 0.significantbits<sub>2</sub>
+
+From:
+
+> (−1)<sup>signbit</sup> × 2<sup>exponent−15</sup> × 1.significantbits<sub>2</sub>
+
+The main different with subnumbers is that they don’t start with a 1, but with a
+0. This means we can represent number with exponents lower that -14 with
+subnumbers by shifting the bits to the left.
+
+We’ll use the smallest 16 bits subnumber: 5.960464477539063e-8 as a example. Its
+regular floating point representation is:
+
+> 2<sup>-24</sup> × 1.0000000000<sub>2</sub>
+
+The fractional part is all zeros and the exponent is -24. How can we represent
+it as a 16 bits floating point number when the exponent is -14? We shift the
+fractional part to the left including the leading 1. Everytime we shift left the
+fractional part it’s equivalent to lowering the exponent by 1.
+
+With our example we have to shift the fractional part by 10 bits, the equivalent
+of lowering the exponent by 10 to -24:
+
+> 2<sup>-24</sup> × 1.0000000000<sub>2</sub> = 2<sup>-14</sup> ×
+> 0.0000000001<sub>2</sub>
+
+This means that as long as we can shift the fractional part to the left without
+dropping any 1’s we can represent the number as a 16 bits subnumber.
+
+To summarize to encode float16 subnumbers we’ll have to:
+
+1. Check the exponent and the number of trailing zeros to ensure we can encode
+   the number without losing precision.
+2. Add a trailing 1 at the end of the fractional part since subnumbers don’t
+   have this leading 1 like regular numbers
+3. Shift the fractional part depending of the number’s exponent
+
+Here’s the code:
+
+    func (e *Encoder) writeFloat(input float64) error {
+        ...
+        var (
+            exp, frac     = unpackFloat64(input)
+            trailingZeros = bits.TrailingZeros64(frac)
+        )
+        if trailingZeros > float64FracBits {
+            trailingZeros = float64FracBits
+        }
+        switch {
+        ...
+        case -exp+float16MinBias <= trailingZeros-float64FracBits+float16FracBits:
+            fmt.Println(-exp+float16MinBias, trailingZeros-float64FracBits+float16FracBits)
+            // this number can be encoded as 16 bits subnumbers
+            frac |= 1 << (float64FracBits + 1)
+            frac >>= uint(-exp + float16MinBias + 1)
+            return e.writeFloat16(math.Signbit(input), 0, frac)
+        ...
+        }
+    }
+
+[denorm]: https://en.wikipedia.org/wiki/Denormal_number
