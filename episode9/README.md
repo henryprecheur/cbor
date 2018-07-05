@@ -511,4 +511,14 @@ we use to match float32 types:
         }
     }
 
+In the case block we build the new fractional part and write it the zero
+exponent and the sign.
+
 [denorm]: https://en.wikipedia.org/wiki/Denormal_number
+
+That was a lot of ground to cover in one episode. Next time we’ll cover
+timestamps.
+
+Check out the [repository][repo] with the full code for this episode.
+
+[repo]: https://bitbucket.org/henry/cbor/src/default/episode9/
