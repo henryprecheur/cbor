@@ -355,6 +355,9 @@ func TestFloat(t *testing.T) {
 		{Value: math.Inf(1), Expected: []byte{0xf9, 0x7c, 0x00}},
 		{Value: math.NaN(), Expected: []byte{0xf9, 0x7e, 0x00}},
 		{Value: math.Inf(-1), Expected: []byte{0xf9, 0xfc, 0x00}},
+		{Value: 4.172325134277344e-07, Expected: []byte{0xf9, 0x00, 0x07}},
+		{Value: 1.519918441772461e-05, Expected: []byte{0xf9, 0x00, 0xff}},
+		{Value: 0.00012201070785522461, Expected: []byte{0xf9, 0x07, 0xff}},
 	}
 
 	for _, c := range cases {

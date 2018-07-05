@@ -171,6 +171,11 @@ func unpackFloat64(f float64) (exp int, frac uint64) {
 	return
 }
 
+func subnumber(exp int, zeros int) bool {
+	var d = -exp + float16MinBias
+	return !(d < 0 || d > float16FracBits || d > (zeros-float64FracBits+float16FracBits))
+}
+
 func (e *Encoder) writeFloat(input float64) error {
 	// First check if we have a special value: 0, NaN, Inf, -Inf
 	switch {
@@ -191,10 +196,10 @@ func (e *Encoder) writeFloat(input float64) error {
 		return e.writeFloat16(math.Signbit(input), (1<<float16ExpBits)-1, frac)
 	case (float16MinBias <= exp) && (exp <= float16MaxBias) && (trailingZeros >= float16MinZeros):
 		return e.writeFloat16(math.Signbit(input), uint16(exp+float16ExpBias), frac)
-	case exp-float16MaxBias+1 <= trailingZeros-float64FracBits+float16FracBits:
+	case subnumber(exp, trailingZeros):
 		// this number can be encoded as 16 bits subnumbers
-		frac |= 1 << (float64FracBits + 1)
-		frac >>= float16FracBits + 1
+		frac |= 1 << (float64FracBits)
+		frac >>= uint(-exp + float16MinBias)
 		return e.writeFloat16(math.Signbit(input), 0, frac)
 	case float64(float32(input)) == input:
 		if err := e.writeHeader(majorSimpleValue, minorFloat32); err != nil {
