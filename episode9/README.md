@@ -474,12 +474,21 @@ dropping any 1’s we can represent the number as a 16 bits subnumber.
 To summarize to encode float16 subnumbers we’ll have to:
 
 1. Check the exponent and the number of trailing zeros to ensure we can encode
-   the number without losing precision.
-2. Add a trailing 1 at the end of the fractional part since subnumbers don’t
-   have this leading 1 like regular numbers
-3. Shift the fractional part depending of the number’s exponent
+   the number without losing precision
+2. Add a trailing 1 at the end of the fractional, subnumbers don’t
+   have the leading 1 like regular numbers do
+3. Shift the fractional part to match the number’s exponent
 
-Here’s the code:
+First we’ll write a helper function to check if we can encode a number as a
+subnumber:
+
+    func subnumber(exp int, zeros int) bool {
+            var d = -exp + float16MinBias
+            return !(d < 0 || d > float16FracBits || d > (zeros-float64FracBits+float16FracBits))
+    }
+
+We then add the necessary values and add a case statement right before the one
+we use to match float32 types:
 
     func (e *Encoder) writeFloat(input float64) error {
         ...
@@ -492,12 +501,12 @@ Here’s the code:
         }
         switch {
         ...
-        case -exp+float16MinBias <= trailingZeros-float64FracBits+float16FracBits:
-            fmt.Println(-exp+float16MinBias, trailingZeros-float64FracBits+float16FracBits)
+        case subnumber(exp, trailingZeros):
             // this number can be encoded as 16 bits subnumbers
-            frac |= 1 << (float64FracBits + 1)
-            frac >>= uint(-exp + float16MinBias + 1)
+            frac |= 1 << (float64FracBits)
+            frac >>= uint(-exp + float16MinBias)
             return e.writeFloat16(math.Signbit(input), 0, frac)
+        case float64(float32(input)) == input:
         ...
         }
     }
